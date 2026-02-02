@@ -32,7 +32,7 @@ OFFSET 1
 ### Search with this
 PREFIX dblp: <https://dblp.org/rdf/schema#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?pub ?title (GROUP_CONCAT(?authorName; SEPARATOR=", ") AS ?authors) WHERE {
+SELECT DISTINCT ?pub ?title (LCASE(CONCAT(STR(?title), " ", GROUP_CONCAT(?authorName; SEPARATOR=", "))) AS ?search) WHERE {
   VALUES (?conference ?stream) {
     ("CRYPTO" <https://dblp.org/streams/conf/crypto>)
     ("EUROCRYPT" <https://dblp.org/streams/conf/eurocrypt>)
@@ -46,14 +46,8 @@ SELECT DISTINCT ?pub ?title (GROUP_CONCAT(?authorName; SEPARATOR=", ") AS ?autho
 }
 GROUP BY ?pub ?title
 HAVING (
-  CONTAINS(
-    LCASE(CONCAT(STR(?title), " ", GROUP_CONCAT(?authorName; SEPARATOR=", "))),
-    LCASE("bitansky")
-  ) &&
-  CONTAINS(
-    LCASE(CONCAT(STR(?title), " ", GROUP_CONCAT(?authorName; SEPARATOR=", "))),
-    LCASE("vinod")
-  )
+  CONTAINS(?search, LCASE("bitansky")) &&
+  CONTAINS(?search,LCASE("vinod"))
 )
 ORDER BY ?title
 LIMIT 10
