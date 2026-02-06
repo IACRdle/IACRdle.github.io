@@ -42,7 +42,7 @@ function mulberry32(seed) {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-const DayRng = mulberry32(seedFromDate(new Date()));
+var DayRng = mulberry32(seedFromDate(new Date()));
 
 function getRandomInt(max) {
   return Math.floor(DayRng * max);
@@ -65,10 +65,13 @@ async function getTarget() {
   const num_pub_query = `
 PREFIX dblp: <https://dblp.org/rdf/schema#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT (COUNT(DISTINCT ?pub) AS ?count) WHERE {` + CONFERENCES_STRING +
     `  ?pub a dblp:Publication ;
        dblp:publishedInStream ?stream ;
-       rdf:type <https://dblp.org/rdf/schema#Inproceedings> .
+       rdf:type <https://dblp.org/rdf/schema#Inproceedings> ;
+       dblp:authoredBy ?author .
+       ?author rdfs:label 'Yuval Ishai' .
 }`
 
 
@@ -87,7 +90,8 @@ SELECT DISTINCT ?pub ?conference ?year ?title (GROUP_CONCAT(?authorName; SEPARAT
        dblp:publishedInStream ?stream ;
        dblp:yearOfPublication ?year;
        rdf:type <https://dblp.org/rdf/schema#Inproceedings> ;
-       dblp:authoredBy ?author .
+       dblp:authoredBy ?author ;
+       dblp:authoredBy <https://dblp.org/pid/05/667>.
        ?author rdfs:label ?authorName .
 }
 GROUP BY ?pub ?conference ?year ?title
