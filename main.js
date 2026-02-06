@@ -50,7 +50,7 @@ function getRandomInt(max) {
 
 function parsePub(pub) {
   var parsed = {};
-  console.log(JSON.stringify(pub));
+  //console.log(JSON.stringify(pub));
   if (pub.pub !== undefined) parsed.id = pub.pub.value;
   if (pub.year !== undefined) parsed.year = parseInt(pub.year.value);
   if (pub.conference !== undefined) parsed.conference = pub.conference.value;
@@ -80,12 +80,15 @@ SELECT (COUNT(DISTINCT ?pub) AS ?count) WHERE {` + CONFERENCES_STRING +
   const rand_pub_query = `
 PREFIX dblp: <https://dblp.org/rdf/schema#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-SELECT DISTINCT ?pub ?conference ?year ?title WHERE {` + CONFERENCES_STRING +
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?pub ?conference ?year ?title (GROUP_CONCAT(?authorName; SEPARATOR=", ") AS ?authors) WHERE {` + CONFERENCES_STRING +
     `?pub a dblp:Publication ;
        dblp:title ?title;
        dblp:publishedInStream ?stream ;
        dblp:yearOfPublication ?year;
-       rdf:type <https://dblp.org/rdf/schema#Inproceedings> .
+       rdf:type <https://dblp.org/rdf/schema#Inproceedings> ;
+       dblp:authoredBy ?author .
+       ?author rdfs:label ?authorName .
 }
 GROUP BY ?pub ?conference ?year ?title
 ORDER BY ?pub 
@@ -101,7 +104,8 @@ async function getCitationNumber(pubID) {
 
 async function printTarget() {
   target = (await getTarget());
-  document.getElementById("target").innerText = JSON.stringify(target);
+  //document.getElementById("target").innerText = JSON.stringify(target);
+  console.log(target);
 }
 
 async function select(item) {
@@ -120,6 +124,18 @@ async function select(item) {
 
   const authors_div = document.createElement("div");
   authors_div.innerText = data.authors;
+  if (data.authors == target.authors) {
+    authors_div.classList.add("success");
+  } else {
+    authors_div.classList.add("fail");
+    var set_authors = new Set(data.authors.split(", "));
+    target.authors.split(", ").forEach(author => {
+      if (set_authors.has(author)) {
+        authors_div.classList.remove("fail");
+        authors_div.classList.add("closeHit");
+      }
+    });
+  }
   guess.appendChild(authors_div);
 
   const conference_div = document.createElement("div");
@@ -151,7 +167,7 @@ async function select(item) {
   guess.appendChild(year_div);
 
   guesses.appendChild(guess);
-  console.log(data);
+  //console.log(data);
 }
 
 async function search({ h = 10 } = {}) {
