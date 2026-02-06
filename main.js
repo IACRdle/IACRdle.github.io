@@ -5,6 +5,8 @@ const CONFERENCES_STRING = `VALUES (?conference ?stream) {
   }`
 
 var dropdown_list = [];
+var selected_list = [];
+var target;
 
 async function runQuery(query) {
   const endpoint = "https://sparql.dblp.org/sparql";
@@ -33,30 +35,27 @@ function seedFromDate(date) {
 
 function mulberry32(seed) {
   let a = seed >>> 0;
-  return function () {
-    let t = (a += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+
+  let t = (a += 0x6d2b79f5);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-function makeDateSeededRng(date) {
-  return mulberry32(seedFromDate(date));
-}
-
-const DayRng = makeDateSeededRng(new Date());
+const DayRng = mulberry32(seedFromDate(new Date()));
 
 function getRandomInt(max) {
-  return Math.floor(DayRng() * max);
+  return Math.floor(DayRng * max);
 }
 
 function parsePub(pub) {
   var parsed = {};
+  console.log(JSON.stringify(pub));
   if (pub.pub !== undefined) parsed.id = pub.pub.value;
   if (pub.year !== undefined) parsed.year = parseInt(pub.year.value);
   if (pub.conference !== undefined) parsed.conference = pub.conference.value;
   if (pub.title !== undefined) parsed.title = pub.title.value;
+  if (pub.authors !== undefined) parsed.authors = pub.authors.value;
   parsed.citation = 0;//TODO
   return parsed;
 }
@@ -77,11 +76,11 @@ SELECT (COUNT(DISTINCT ?pub) AS ?count) WHERE {` + CONFERENCES_STRING +
   const num_pubs = parseInt(data[0].count.value);
 
   const rand_pub_index = getRandomInt(num_pubs);
-  console.log(rand_pub_index);
+  //console.log(rand_pub_index);
   const rand_pub_query = `
 PREFIX dblp: <https://dblp.org/rdf/schema#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-SELECT DISTINCT ?pub ?conference ?year WHERE {` + CONFERENCES_STRING +
+SELECT DISTINCT ?pub ?conference ?year ?title WHERE {` + CONFERENCES_STRING +
     `?pub a dblp:Publication ;
        dblp:title ?title;
        dblp:publishedInStream ?stream ;
@@ -101,25 +100,75 @@ async function getCitationNumber(pubID) {
 }
 
 async function printTarget() {
-  const target = (await getTarget())
-  console.log(target)
-  document.querySelector("#target").innerText = JSON.stringify(target);
+  target = (await getTarget());
+  document.getElementById("target").innerText = JSON.stringify(target);
+}
+
+async function select(item) {
+  const data = JSON.parse(item.dataset.publication);
+  selected_list.push(data);
+  const guesses = document.getElementById("guesses");
+  const guess = document.createElement("div");
+  guess.classList.add("guess")
+
+  const title_div = document.createElement("div");
+  title_div.innerText = data.title;
+  if (data.title == target.title) {
+    title_div.classList.add("success");
+  }
+  guess.appendChild(title_div);
+
+  const authors_div = document.createElement("div");
+  authors_div.innerText = data.authors;
+  guess.appendChild(authors_div);
+
+  const conference_div = document.createElement("div");
+  conference_div.innerText = data.conference;
+  if (data.conference == target.conference) {
+    conference_div.classList.add("success");
+  } else {
+    conference_div.classList.add("fail");
+  }
+  guess.appendChild(conference_div);
+
+  const year_div = document.createElement("div");
+  year_div.innerText = data.year;
+  if (data.year == target.year) {
+    year_div.classList.add("success");
+  } else {
+    if (Math.abs(data.year - target.year) <= 5) {
+      year_div.classList.add("closeHit");
+    } else {
+      year_div.classList.add("fail");
+    }
+
+    if (data.year - target.year < 0) {
+      year_div.innerText += "⬆️";
+    } else {
+      year_div.innerText += "⬇️";
+    }
+  }
+  guess.appendChild(year_div);
+
+  guesses.appendChild(guess);
+  console.log(data);
 }
 
 async function search({ h = 10 } = {}) {
-  const q = document.querySelector("#search_bar").value;
+  const q = document.getElementById("search_bar").value;
   const qs = 'CONTAINS(?search,LCASE("' + q.split(" ").filter((word) => word.length > 0).join('")) && CONTAINS(?search,LCASE("') + '"))';
   const search_query = `
 PREFIX dblp: <https://dblp.org/rdf/schema#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?pub ?title (LCASE(CONCAT(STR(?title), " ", GROUP_CONCAT(?authorName; SEPARATOR=", "))) AS ?search) WHERE {` + CONFERENCES_STRING +
+SELECT DISTINCT ?pub ?title (LCASE(CONCAT(STR(?title), " ", GROUP_CONCAT(?authorName; SEPARATOR=", "))) AS ?search) (GROUP_CONCAT(?authorName; SEPARATOR=", ") AS ?authors) ?conference ?year WHERE {` + CONFERENCES_STRING +
     `?pub a dblp:Publication ;
        dblp:publishedInStream ?stream ;
        dblp:title ?title ;
+       dblp:yearOfPublication ?year;
        dblp:authoredBy ?author .
   ?author rdfs:label ?authorName .
 }
-GROUP BY ?pub ?title
+GROUP BY ?pub ?title ?conference ?year
 HAVING (` + qs + `
 )
 ORDER BY ?title
@@ -127,10 +176,13 @@ LIMIT `+ h;
   const search_result = await runQuery(search_query);
   dropdown_list = search_result.map(parsePub);
 
-  const dropdown_div = document.querySelector("#dropdown");
+  const dropdown_div = document.getElementById("dropdown");
   var inner = "";
   dropdown_list.forEach(search_response => {
-    inner += "<div class='dropdownChoice' value='" + search_response.id + "'>" + search_response.title + "</div>";
+    inner += "<div class='dropdownChoice' data-publication='" + JSON.stringify(search_response) + "'>" + search_response.title + "</div>";
   });
   dropdown_div.innerHTML = inner;
+  for (const child of dropdown_div.children) {
+    child.addEventListener("click", () => select(child));
+  }
 }

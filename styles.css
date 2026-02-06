@@ -1,0 +1,28 @@
+.dropdownChoice {
+    justify-content: center;
+    display: flex;
+}
+
+#guesses {
+    display: flex;
+    flex-direction: column-reverse;
+
+    border: 2px solid black;
+    border-radius: 5px;
+}
+
+.guess {
+    border: 2px solid black;
+}
+
+.success {
+    background-color: green;
+}
+
+.closeHit {
+    background-color: yellow;
+}
+
+.fail {
+    background-color: red;
+}
