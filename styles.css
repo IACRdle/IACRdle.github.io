@@ -19,6 +19,10 @@ body {
     border: 2px solid black;
 }
 
+.guess:hover {
+    background-color: lightgray;
+}
+
 .success {
     background-color: green;
 }
