@@ -37,3 +37,15 @@ processed_lib = "const papers = " + str(list(map(strip,filtered_lib))) + ";"
 # %%
 with open("data.js", "w") as f:
   f.write(processed_lib)
+
+# # %%
+# from scholarly import scholarly
+
+# # %%
+# for paper in list(filtered_lib)[:20]:
+#     #a = scholarly.search_pubs(paper.title)
+#     #print(next(a))
+#     print(paper)
+# # %%
+# processed_lib
+# # %%
