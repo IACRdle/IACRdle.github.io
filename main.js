@@ -1,26 +1,13 @@
-const CONFERENCES_STRING = `VALUES (?conference ?stream) {
-    ("CRYPTO" <https://dblp.org/streams/conf/crypto>)
-    ("EUROCRYPT" <https://dblp.org/streams/conf/eurocrypt>)
-	  ("TCC" <https://dblp.org/streams/conf/tcc>)
-  }`
+function addSearchStrings() {
+  for (let i = 0; i < papers.length; i++) {
+    papers[i].searchstring = (papers[i].title + papers[i].authors.join(" ")).toLocaleLowerCase("en-US");
+  }
+}
+addSearchStrings();
 
 var dropdown_list = [];
 var selected_list = [];
 var target;
-
-async function runQuery(query) {
-  const endpoint = "https://sparql.dblp.org/sparql";
-
-  const url =
-    endpoint +
-    "?query=" + encodeURIComponent(query) +
-    "&format=application/sparql-results+json";
-
-  const res = await fetch(url);
-  const r = await res.json();
-  //console.log(r);
-  return r.results.bindings;
-}
 
 function seedFromDate(date) {
   const d = date instanceof Date ? date : new Date(date);
@@ -60,59 +47,25 @@ function parsePub(pub) {
   return parsed;
 }
 
-async function getTarget() {
-
-  const num_pub_query = `
-PREFIX dblp: <https://dblp.org/rdf/schema#>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT (COUNT(DISTINCT ?pub) AS ?count) WHERE {` + CONFERENCES_STRING +
-    `  ?pub a dblp:Publication ;
-       dblp:publishedInStream ?stream ;
-       rdf:type <https://dblp.org/rdf/schema#Inproceedings> ;
-       dblp:authoredBy ?author .
-       ?author rdfs:label 'Yuval Ishai' .
-}`
-
-
-  const data = await runQuery(num_pub_query);
-  const num_pubs = parseInt(data[0].count.value);
-
-  const rand_pub_index = getRandomInt(num_pubs);
-  //console.log(rand_pub_index);
-  const rand_pub_query = `
-PREFIX dblp: <https://dblp.org/rdf/schema#>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?pub ?conference ?year ?title (GROUP_CONCAT(?authorName; SEPARATOR=", ") AS ?authors) WHERE {` + CONFERENCES_STRING +
-    `?pub a dblp:Publication ;
-       dblp:title ?title;
-       dblp:publishedInStream ?stream ;
-       dblp:yearOfPublication ?year;
-       rdf:type <https://dblp.org/rdf/schema#Inproceedings> ;
-       dblp:authoredBy ?author ;
-       dblp:authoredBy <https://dblp.org/pid/05/667>.
-       ?author rdfs:label ?authorName .
-}
-GROUP BY ?pub ?conference ?year ?title
-ORDER BY ?pub 
-LIMIT 1
-OFFSET ` + rand_pub_index;
-  const rand_pub = (await runQuery(rand_pub_query))[0];
-  return (parsePub(rand_pub));
+function getTarget() {
+  function selectTarget(paper) {
+    return paper.authors.includes("Yuval Ishai");
+  }
+  const filtered_papers = papers.filter(selectTarget);
+  return filtered_papers[getRandomInt(filtered_papers.length)];
 }
 
 async function getCitationNumber(pubID) {
   return 0;
 }
 
-async function printTarget() {
-  target = (await getTarget());
+function printTarget() {
+  target = getTarget();
   //document.getElementById("target").innerText = JSON.stringify(target);
   console.log(target);
 }
 
-async function select(item) {
+function select(item) {
   const data = JSON.parse(item.dataset.publication);
   selected_list.push(data);
   const guesses = document.getElementById("guesses");
@@ -127,13 +80,13 @@ async function select(item) {
   guess.appendChild(title_div);
 
   const authors_div = document.createElement("div");
-  authors_div.innerText = data.authors;
+  authors_div.innerText = data.authors.join(", ");
   if (data.authors == target.authors) {
     authors_div.classList.add("success");
   } else {
     authors_div.classList.add("fail");
-    var set_authors = new Set(data.authors.split(", "));
-    target.authors.split(", ").forEach(author => {
+    var set_authors = new Set(data.authors);
+    target.authors.forEach(author => {
       if (set_authors.has(author)) {
         authors_div.classList.remove("fail");
         authors_div.classList.add("closeHit");
@@ -143,8 +96,8 @@ async function select(item) {
   guess.appendChild(authors_div);
 
   const conference_div = document.createElement("div");
-  conference_div.innerText = data.conference;
-  if (data.conference == target.conference) {
+  conference_div.innerText = data.conf;
+  if (data.conf == target.conf) {
     conference_div.classList.add("success");
   } else {
     conference_div.classList.add("fail");
@@ -174,35 +127,34 @@ async function select(item) {
   //console.log(data);
 }
 
-async function search({ h = 10 } = {}) {
-  const q = document.getElementById("search_bar").value;
-  const qs = 'CONTAINS(?search,LCASE("' + q.split(" ").filter((word) => word.length > 0).join('")) && CONTAINS(?search,LCASE("') + '"))';
-  const search_query = `
-PREFIX dblp: <https://dblp.org/rdf/schema#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?pub ?title (LCASE(CONCAT(STR(?title), " ", GROUP_CONCAT(?authorName; SEPARATOR=", "))) AS ?search) (GROUP_CONCAT(?authorName; SEPARATOR=", ") AS ?authors) ?conference ?year WHERE {` + CONFERENCES_STRING +
-    `?pub a dblp:Publication ;
-       dblp:publishedInStream ?stream ;
-       dblp:title ?title ;
-       dblp:yearOfPublication ?year;
-       dblp:authoredBy ?author .
-  ?author rdfs:label ?authorName .
-}
-GROUP BY ?pub ?title ?conference ?year
-HAVING (` + qs + `
-)
-ORDER BY ?title
-LIMIT `+ h;
-  const search_result = await runQuery(search_query);
-  dropdown_list = search_result.map(parsePub);
+
+function search({ h = 10 } = {}) {
+  const search_bar_content = document.getElementById("search_bar").value;
+  const search_words = search_bar_content.split(" ").filter((word) => word.length > 0);
+  //console.log(search_words);
+
+  function paper_contains(paper) {
+    for (let index = 0; index < search_words.length; index++) {
+      const word = search_words[index];
+      
+      if (!paper.searchstring.includes(word)) {
+        //console.log(paper.title.toLowerCase(), word);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const found_papers = papers.filter(paper_contains);
 
   const dropdown_div = document.getElementById("dropdown");
   var inner = "";
-  dropdown_list.forEach(search_response => {
+  found_papers.slice(0,10).forEach(search_response => {
     inner += "<div class='dropdownChoice' data-publication='" + JSON.stringify(search_response) + "'>" + search_response.title + "</div>";
   });
   dropdown_div.innerHTML = inner;
   for (const child of dropdown_div.children) {
     child.addEventListener("click", () => select(child));
+    child.classList.add("selectionOption");
   }
 }

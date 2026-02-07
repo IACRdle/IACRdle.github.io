@@ -19,7 +19,7 @@ body {
     border: 2px solid black;
 }
 
-.guess:hover {
+.selectionOption:hover {
     background-color: lightgray;
 }
 
