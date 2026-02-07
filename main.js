@@ -96,7 +96,20 @@ function select(item) {
   guess.appendChild(authors_div);
 
   const conference_div = document.createElement("div");
-  conference_div.innerText = data.conf;
+  switch (data.conf) {
+    case "C":
+      conference_div.innerText = "Crypto";
+      break;
+    case "EC":
+      conference_div.innerText = "Eurocrypt";
+      break;
+    case "AC":
+      conference_div.innerText = "Asiacrypt";
+      break;
+    default:
+      conference_div.innerText = data.conf;
+  }
+
   if (data.conf == target.conf) {
     conference_div.classList.add("success");
   } else {
@@ -136,7 +149,7 @@ function search({ h = 10 } = {}) {
   function paper_contains(paper) {
     for (let index = 0; index < search_words.length; index++) {
       const word = search_words[index];
-      
+
       if (!paper.searchstring.includes(word)) {
         //console.log(paper.title.toLowerCase(), word);
         return false;
@@ -149,7 +162,7 @@ function search({ h = 10 } = {}) {
 
   const dropdown_div = document.getElementById("dropdown");
   var inner = "";
-  found_papers.slice(0,10).forEach(search_response => {
+  found_papers.slice(0, 10).forEach(search_response => {
     inner += "<div class='dropdownChoice' data-publication='" + JSON.stringify(search_response) + "'>" + search_response.title + "</div>";
   });
   dropdown_div.innerHTML = inner;
