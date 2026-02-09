@@ -144,7 +144,7 @@ function select(item) {
 function search({ h = 10 } = {}) {
   const search_bar_content = document.getElementById("search_bar").value.toLocaleLowerCase("en-US");
   const search_words = search_bar_content.split(" ").filter((word) => word.length > 0);
-  console.log(search_words);
+  //console.log(search_words);
 
   function paper_contains(paper) {
     for (let index = 0; index < search_words.length; index++) {
