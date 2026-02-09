@@ -142,9 +142,9 @@ function select(item) {
 
 
 function search({ h = 10 } = {}) {
-  const search_bar_content = document.getElementById("search_bar").value;
+  const search_bar_content = document.getElementById("search_bar").value.toLocaleLowerCase("en-US");
   const search_words = search_bar_content.split(" ").filter((word) => word.length > 0);
-  //console.log(search_words);
+  console.log(search_words);
 
   function paper_contains(paper) {
     for (let index = 0; index < search_words.length; index++) {
@@ -163,7 +163,7 @@ function search({ h = 10 } = {}) {
   const dropdown_div = document.getElementById("dropdown");
   var inner = "";
   found_papers.slice(0, 10).forEach(search_response => {
-    inner += "<div class='dropdownChoice' data-publication='" + JSON.stringify(search_response) + "'>" + search_response.title + "</div>";
+    inner += `<div class='dropdownChoice' data-publication='${JSON.stringify(search_response)}'>${search_response.title}</div>`;
   });
   dropdown_div.innerHTML = inner;
   for (const child of dropdown_div.children) {
@@ -171,3 +171,4 @@ function search({ h = 10 } = {}) {
     child.classList.add("selectionOption");
   }
 }
+

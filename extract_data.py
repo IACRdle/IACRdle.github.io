@@ -26,7 +26,7 @@ filtered_lib = filter(only_conferences,library)
 def strip(entry):
     out = dict()
     out["year"] = entry["year"]
-    out["authors"] = entry["author"].split(" and\n")
+    out["authors"] = entry["author"].replace('{\\"a}',"ä").replace('{\\"u}',"ü").replace('{\\"U}',"Ü").replace('{\\"i}',"ï").replace("{\\'e}","é").replace("{\\r a}","å").replace("{\\aa}","å").replace("{\\'i}","í").replace("{\\^i}","î").replace('{\\"o}',"ö").replace('{\\"O}',"Ö").replace('{\\"e}',"ë").replace("{\\'o}","ó").replace("{\\c c}","ç").replace("{\\ss}","ß").replace("{\\`e}","è").replace("{\\~a}","ã").replace("{\\'u}","ú").replace("{\\'a}","á").replace("{\\^o}","ô").replace("{\\o}","ø").replace("{\\`a}","à").replace("{\\O}","Ø").replace("{\\'E}","É").replace("{\\^u}","û").replace("{\\~n}","ñ").replace("{\\`u}","ù").replace("{\\AA}","Å").replace("{\\u a}","ă").replace("{\\'A}","Á").replace("{\\v{z}}","ž").replace("{\\v z}","ž").replace("{\\'c}","ć").replace("{\\v s}","š").replace("{\\c C}","Ç").replace("{\\'y}","ý").replace("{\\v c}","č").replace("{\\ae}","æ").split(" and\n")
     out["id"] = entry["ID"]
     out["conf"] = entry['ID'].split(":")[0]
     out["title"] = entry["title"].replace("{","").replace("}","")
