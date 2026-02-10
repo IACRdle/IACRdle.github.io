@@ -1,6 +1,12 @@
 function addSearchStrings() {
   for (let i = 0; i < papers.length; i++) {
-    papers[i].searchstring = (papers[i].title + papers[i].authors.join(" ")).toLocaleLowerCase("en-US");
+    papers[i].searchstring = papers[i].title + " ";
+    papers[i].searchstring += papers[i].authors.join(" ");
+    for (let j = 0; j < papers[i].authors.length; j++) {
+      papers[i].searchstring += " " + papers[i].authors[j].replace(/[áåàăâäÁÅ]/g, 'a').replace(/[úùûüÜ]/g, 'u').replace(/[éèëÉ]/g, 'e').replace(/[öÖóøØ]/g, 'o').replace(/[ïíî]/g, 'o').replace(/[çÇćč]/g, 'c').replace('ñ', 'n').replace('ß', 'ss').replace('ž', 'z').replace('š', 's').replace('ý', 'y').replace('æ', 'ae');
+    }
+    papers[i].searchstring = papers[i].searchstring.toLocaleLowerCase('en-US');
+    //console.log(papers[i]);
   }
 }
 addSearchStrings();
@@ -73,7 +79,18 @@ function select(item) {
   guess.classList.add("guess")
 
   const title_div = document.createElement("div");
-  title_div.innerText = data.title;
+  const title_words = data.title.split(" ");
+  const target_title_words = target.title.split(" ");
+  for (let i = 0; i < title_words.length; i++) {
+    const word = title_words[i];
+    if (target_title_words[i] == word) {
+      title_div.innerHTML += `<span class="success">${word}</span> `;
+    } else if (target_title_words.includes(word)) {
+      title_div.innerHTML += `<span class="closeHit">${word}</span> `;
+    } else {
+      title_div.innerHTML += `<span class="fail">${word}</span> `;
+    }
+  }
   if (data.title == target.title) {
     title_div.classList.add("success");
   }
@@ -81,7 +98,7 @@ function select(item) {
 
   const authors_div = document.createElement("div");
   authors_div.innerText = data.authors.join(", ");
-  if (data.authors == target.authors) {
+  if (data.authors.join(", ") == target.authors.join(", ")) {
     authors_div.classList.add("success");
   } else {
     authors_div.classList.add("fail");
