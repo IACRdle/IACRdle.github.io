@@ -15,12 +15,10 @@ var dropdown_list = [];
 var selected_list = [];
 var target;
 
-function seedFromDate(date) {
-  const d = date instanceof Date ? date : new Date(date);
-  const dateString = d.toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+function seedFromDate(seed_string) {
   let hash = 2166136261;
-  for (let i = 0; i < dateString.length; i++) {
-    hash ^= dateString.charCodeAt(i);
+  for (let i = 0; i < seed_string.length; i++) {
+    hash ^= seed_string.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
@@ -35,10 +33,13 @@ function mulberry32(seed) {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-var DayRng = mulberry32(seedFromDate(new Date()));
-
-function getRandomInt(max) {
-  return Math.floor(DayRng * max);
+function DayRng(nonce) {
+  const d = new Date();
+  const dateString = d.toISOString().slice(0, 10);
+  return mulberry32(seedFromDate(dateString + nonce));
+}
+function getRandomInt(nonce, max) {
+  return Math.floor(DayRng(nonce * max));
 }
 
 function parsePub(pub) {
@@ -52,23 +53,17 @@ function parsePub(pub) {
   parsed.citation = 0;//TODO
   return parsed;
 }
-
-function getTarget() {
-  function selectTarget(paper) {
-    return paper.authors.includes("Yuval Ishai");
-  }
-  const filtered_papers = papers.filter(selectTarget);
-  return filtered_papers[getRandomInt(filtered_papers.length)];
+todays_author = authors[getRandomInt("author", authors.length)]
+function selectTarget(paper) {
+  return paper.authors.includes(todays_author);
 }
+const filtered_papers = papers.filter(selectTarget);
+todays_target_paper = filtered_papers[getRandomInt("paper", filtered_papers.length)];
+console.log(todays_target_paper);
+
 
 async function getCitationNumber(pubID) {
   return 0;
-}
-
-function printTarget() {
-  target = getTarget();
-  //document.getElementById("target").innerText = JSON.stringify(target);
-  console.log(target);
 }
 
 function select(item) {
@@ -80,7 +75,7 @@ function select(item) {
 
   const title_div = document.createElement("div");
   const title_words = data.title.split(" ");
-  const target_title_words = target.title.split(" ");
+  const target_title_words = todays_target_paper.title.split(" ");
   for (let i = 0; i < title_words.length; i++) {
     const word = title_words[i];
     if (target_title_words[i] == word) {
@@ -91,19 +86,19 @@ function select(item) {
       title_div.innerHTML += `<span class="fail">${word}</span> `;
     }
   }
-  if (data.title == target.title) {
+  if (data.title == todays_target_paper.title) {
     title_div.classList.add("success");
   }
   guess.appendChild(title_div);
 
   const authors_div = document.createElement("div");
   authors_div.innerText = data.authors.join(", ");
-  if (data.authors.join(", ") == target.authors.join(", ")) {
+  if (data.authors.join(", ") == todays_target_paper.authors.join(", ")) {
     authors_div.classList.add("success");
   } else {
     authors_div.classList.add("fail");
     var set_authors = new Set(data.authors);
-    target.authors.forEach(author => {
+    todays_target_paper.authors.forEach(author => {
       if (set_authors.has(author)) {
         authors_div.classList.remove("fail");
         authors_div.classList.add("closeHit");
@@ -127,7 +122,7 @@ function select(item) {
       conference_div.innerText = data.conf;
   }
 
-  if (data.conf == target.conf) {
+  if (data.conf == todays_target_paper.conf) {
     conference_div.classList.add("success");
   } else {
     conference_div.classList.add("fail");
@@ -136,16 +131,16 @@ function select(item) {
 
   const year_div = document.createElement("div");
   year_div.innerText = data.year;
-  if (data.year == target.year) {
+  if (data.year == todays_target_paper.year) {
     year_div.classList.add("success");
   } else {
-    if (Math.abs(data.year - target.year) <= 5) {
+    if (Math.abs(data.year - todays_target_paper.year) <= 5) {
       year_div.classList.add("closeHit");
     } else {
       year_div.classList.add("fail");
     }
 
-    if (data.year - target.year < 0) {
+    if (data.year - todays_target_paper.year < 0) {
       year_div.innerText += "⬆️";
     } else {
       year_div.innerText += "⬇️";
@@ -188,4 +183,3 @@ function search({ h = 10 } = {}) {
     child.classList.add("selectionOption");
   }
 }
-

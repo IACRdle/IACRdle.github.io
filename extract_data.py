@@ -33,13 +33,30 @@ def strip(entry):
     return out
 
 processed_lib = list(map(strip,filtered_lib))
-processed_lib_string = "const papers = " + str(processed_lib) + ";"
+processed_lib_string = "const papers = " + str(processed_lib) + ";\n"
+# %%
+paper_per_author = dict()
+for paper in processed_lib:
+    for author in paper["authors"]:
+        if author in paper_per_author:
+            paper_per_author[author] += 1
+        else:
+            paper_per_author[author] = 1
 
+#print(paper_per_author)
+
+most_published_authors = []
+for author in paper_per_author:
+    if paper_per_author[author] >= 50:
+        most_published_authors.append(author)
+#print(most_published_authors)
+most_published_authors_string = "const authors = " + str(most_published_authors) + ";"
 # %%
 with open("data.js", "w") as f:
-  f.write(processed_lib_string)
-'''
+  f.write(processed_lib_string + most_published_authors_string)
+
 # %%
+'''
 import requests
 from bs4 import BeautifulSoup
 
