@@ -1,6 +1,6 @@
 # %%
 import bibtexparser
-
+from random import shuffle
 
 # %%
 abbrev3 = open("cryptobib/abbrev3.bib")
@@ -33,6 +33,7 @@ def strip(entry):
     return out
 
 processed_lib = list(map(strip,filtered_lib))
+shuffle(processed_lib)
 processed_lib_string = "const papers = " + str(processed_lib) + ";\n"
 # %%
 paper_per_author = dict()
@@ -56,23 +57,42 @@ with open("data.js", "w") as f:
   f.write(processed_lib_string + most_published_authors_string)
 
 # %%
+len(processed_lib)
+# %%
 '''
 import requests
 from bs4 import BeautifulSoup
+import re
+import time
 
 # %%
-url = 'https://scholar.google.com/scholar?q=Beyond-Birthday-Bound+Security+with+HCTR2%3A+Cascaded+Construction+and+Tweak-Based+Key+Derivation'
 headers = {
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0'
 }
-try:
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.content, 'html.parser')
-except:
-    pass
+def get_citations(paper):
+    url = 'https://scholar.google.com/scholar?q='
+    url += "+".join(paper["title"].split(" "))
+    for author in paper["authors"]:
+        url += "+" + "+".join(author.split(" "))
+    #print(url)
+    try:
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        regex = re.compile(".scholar.cites.*")
+        content_divs = soup.find('a',{"href":regex})
+        citations = int(content_divs.get_text().split(" ")[-1])
+    except:
+        citations = 0
+    return citations
 
 # %%
-content_divs = soup.find_all('div', class_="gs_flb")
-content_divs
+for i in range(20):
+    num_citation = get_citations(processed_lib[i])
+    processed_lib[i]["citations"] = num_citation
+    time.sleep(0.2)
+    
+# %%
+
+processed_lib[:20]
 # %%
 '''

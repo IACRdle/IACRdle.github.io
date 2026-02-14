@@ -39,7 +39,7 @@ function DayRng(nonce) {
   return mulberry32(seedFromDate(dateString + nonce));
 }
 function getRandomInt(nonce, max) {
-  return Math.floor(DayRng(nonce * max));
+  return Math.floor(DayRng(nonce) * max);
 }
 
 function parsePub(pub) {
