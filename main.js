@@ -92,7 +92,7 @@ function select(item) {
   }
   if (data.title == todays_target_paper.title) {
     title_div.classList.add("success");
-      succeeded_today = true;
+    succeeded_today = true;
   }
   guess.appendChild(title_div);
 
@@ -153,6 +153,25 @@ function select(item) {
   }
   guess.appendChild(year_div);
 
+  const citations_div = document.createElement("div");
+  citations_div.innerText = "Citations: " + data.citations;
+  if (data.citations == todays_target_paper.citations) {
+    citations_div.classList.add("success");
+  } else {
+    if (Math.abs(Math.log2(data.citations) - Math.log2(todays_target_paper.citations)) < 1) {
+      citations_div.classList.add("closeHit");
+    } else {
+      citations_div.classList.add("fail");
+    }
+
+    if (data.citations - todays_target_paper.citations < 0) {
+      citations_div.innerText += "⬆️";
+    } else {
+      citations_div.innerText += "⬇️";
+    }
+  }
+  guess.appendChild(citations_div);
+
   guesses.appendChild(guess);
 
   if (succeeded_today) {
@@ -164,7 +183,7 @@ function select(item) {
     }
     copy_button.addEventListener("click", copy)
     copy_button.innerText = 'Share with a friend';
-    
+
 
     success_box.appendChild(copy_button);
     guesses.appendChild(success_box);
