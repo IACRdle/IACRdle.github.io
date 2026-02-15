@@ -14,6 +14,7 @@ addSearchStrings();
 var dropdown_list = [];
 var selected_list = [];
 var target;
+var succeeded_today = false;
 
 function seedFromDate(seed_string) {
   let hash = 2166136261;
@@ -67,6 +68,9 @@ async function getCitationNumber(pubID) {
 }
 
 function select(item) {
+  if (succeeded_today) {
+    return;
+  }
   const data = JSON.parse(item.dataset.publication);
   selected_list.push(data);
   const guesses = document.getElementById("guesses");
@@ -88,6 +92,7 @@ function select(item) {
   }
   if (data.title == todays_target_paper.title) {
     title_div.classList.add("success");
+      succeeded_today = true;
   }
   guess.appendChild(title_div);
 
@@ -149,6 +154,21 @@ function select(item) {
   guess.appendChild(year_div);
 
   guesses.appendChild(guess);
+
+  if (succeeded_today) {
+    const success_box = document.createElement("div");
+    const copy_button = document.createElement("button");
+    function copy() {
+      navigator.clipboard.writeText(`🔥 I finished today's IACRdle in ${selected_list.length} guesses https://IACRdle.github.io`);
+      copy_button.innerText = "Result saved to clipboard 📋"
+    }
+    copy_button.addEventListener("click", copy)
+    copy_button.innerText = 'Share with a friend';
+    
+
+    success_box.appendChild(copy_button);
+    guesses.appendChild(success_box);
+  }
   //console.log(data);
 }
 
